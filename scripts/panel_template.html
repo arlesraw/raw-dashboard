@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi contenido · Reel Stats</title>
+<style>
+  :root{
+    --bg:#08090b; --surface:#101114; --surface2:#16181c; --line:#25272d;
+    --text:#f4f4f5; --muted:#8b8f98; --brand:#3b82f6; --brand2:#2563eb;
+    --up:#34d399; --down:#f87171;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:14px}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px 20px 56px}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+  h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+  .tabs button{background:none;border:0;color:var(--muted);padding:8px 14px;border-radius:9px;cursor:pointer;font:inherit}
+  .tabs button.on{background:var(--brand);color:#fff}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}
+  select,input{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h3{margin:0 0 6px;font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .big{font-size:26px;font-weight:600;letter-spacing:-.02em}
+  .delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-left:8px;padding:2px 7px;border-radius:999px;background:var(--surface2)}
+  .up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+  .grid2b{display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+  @media (max-width:860px){ .grid2,.grid2b{grid-template-columns:1fr} }
+  .sec-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .sec-title h2{margin:0;font-size:15px;font-weight:600}
+  svg{width:100%;height:220px;display:block}
+  .axis{fill:var(--muted);font-size:11px}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .row:last-child{border-bottom:0}
+  .row .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%}
+  .muted{color:var(--muted)}
+  .bar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:6px}
+  .bar>div{height:100%;background:var(--brand)}
+  .heat{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}
+  .heat div{aspect-ratio:1;border-radius:3px;background:var(--surface2)}
+  .lvl1{background:#1e3a8a!important} .lvl2{background:#2563eb!important} .lvl3{background:#3b82f6!important} .lvl4{background:#93c5fd!important}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left}
+  th{color:var(--muted);font-weight:500;cursor:pointer;white-space:nowrap}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  a{color:var(--brand)}
+  .vacio{color:var(--muted);padding:12px 0}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Mi contenido</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+    <span class="pill" id="cuenta"></span>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="on" data-tab="dash">Dashboard</button>
+    <button data-tab="desglose">Desglose</button>
+    <button data-tab="temas">Temáticas</button>
+    <button data-tab="ganchos">Ganchos</button>
+  </nav>
+
+  <div class="toolbar">
+    <select id="periodo">
+      <option value="90">Últimos 90 días</option>
+      <option value="30">Últimos 30 días</option>
+      <option value="all">Todo el historial</option>
+    </select>
+    <input id="buscar" placeholder="Buscar tema, gancho o texto…">
+  </div>
+
+  <!-- DASHBOARD -->
+  <section id="tab-dash">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="sec-title"><h2>Vistas acumuladas por publicación</h2><span class="muted" id="rangoFechas"></span></div>
+        <svg id="linea" viewBox="0 0 640 220" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="card">
+        <div class="sec-title"><h2>Destacados</h2><span class="muted">top 5 por vistas</span></div>
+        <div id="destacados"></div>
+      </div>
+    </div>
+
+    <div class="grid2b">
+      <div class="card">
+        <div class="sec-title"><h2>Publicaciones (últimas 14 semanas)</h2><span class="muted" id="conteoPub"></span></div>
+        <div class="heat" id="heat"></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><h2>Mejores videos</h2></div>
+        <div class="tabs" id="metricTabs" style="margin-bottom:10px">
+          <button class="on" data-m="views">Vistas</button>
+          <button data-m="comments">Comentarios</button>
+          <button data-m="likes">Likes</button>
+          <button data-m="engagement">Engagement</button>
+        </div>
+        <div id="mejores"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DESGLOSE -->
+  <section id="tab-desglose" class="hidden">
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th data-k="timestamp">Fecha</th><th data-k="tema">Tema</th><th data-k="gancho">Gancho</th>
+          <th class="n" data-k="views">Vistas</th><th class="n" data-k="likes">Likes</th>
+          <th class="n" data-k="comments">Comentarios</th><th class="n" data-k="engagement">Engagement</th><th>Video</th>
+        </tr></thead>
+        <tbody id="filas"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TEMÁTICAS / GANCHOS -->
+  <section id="tab-temas" class="hidden"><div class="card" id="porTema"></div></section>
+  <section id="tab-ganchos" class="hidden"><div class="card" id="porGancho"></div></section>
+</div>
+
+<script>
+const REELS = /*__REELS__*/[];
+
+const fmt = n => Math.round(n ?? 0).toLocaleString("es-MX");
+const compacto = n => { n = n ?? 0; return n >= 1e6 ? (n/1e6).toFixed(1)+" M" : n >= 1e3 ? (n/1e3).toFixed(1)+" mil" : fmt(n); };
+const pct = x => ((x ?? 0)*100).toFixed(2)+"%";
+const dia = s => s ? new Date(s).toLocaleDateString("es-MX",{day:"2-digit",month:"short"}) : "—";
+const ms = s => s ? new Date(s).getTime() : 0;
+
+const base = REELS.map(r => {
+  const c = r.classification || {};
+  return {...r, tema: c.tema || "sin clasificar", gancho: c.gancho || "sin clasificar", formato: c.formato || "—", tono: c.tono || "—"};
+});
+
+// ---------- periodo y comparación ----------
+function ventana() {
+  const p = document.getElementById("periodo").value;
+  if (p === "all") return {actual: base, previo: []};
+  const dias = +p, ahora = Date.now(), corte = ahora - dias*864e5, corte2 = ahora - 2*dias*864e5;
+  return {
+    actual: base.filter(r => ms(r.timestamp) >= corte),
+    previo: base.filter(r => ms(r.timestamp) >= corte2 && ms(r.timestamp) < corte),
+  };
+}
+
+function resumen(list) {
+  const n = list.length;
+  const views = list.reduce((s,r)=>s+r.views,0);
+  const likes = list.reduce((s,r)=>s+r.likes,0);
+  const comments = list.reduce((s,r)=>s+r.comments,0);
+  return {
+    n, views, likes, comments,
+    vistasProm: n ? views/n : 0,
+    engProm: n ? list.reduce((s,r)=>s+r.engagement,0)/n : 0,
+    guardadosComp: 0,
+  };
+}
+
+function delta(a, b) {
+  if (!b) return {txt:"—", cls:"flat"};
+  const d = (a-b)/b*100;
+  if (Math.abs(d) < 0.5) return {txt:"0%", cls:"flat"};
+  return {txt:(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(0)+"%", cls: d>0?"up":"down"};
+}
+
+function kpiCard(titulo, valor, d) {
+  return `<div class="card"><h3>${titulo}</h3><div class="big">${valor}
+    <span class="delta ${d.cls}">${d.txt}</span></div>
+    <div class="muted" style="font-size:12px;margin-top:4px">${d.txt==="—"?"sin periodo anterior":"vs periodo anterior"}</div></div>`;
+}
+
+// ---------- secciones ----------
+function renderKpis(v) {
+  const a = resumen(v.actual), p = resumen(v.previo);
+  document.getElementById("kpis").innerHTML = [
+    kpiCard("Vistas", compacto(a.views), delta(a.views, p.views)),
+    kpiCard("Publicados", fmt(a.n), delta(a.n, p.n)),
+    kpiCard("Vistas por reel", compacto(a.vistasProm), delta(a.vistasProm, p.vistasProm)),
+    kpiCard("Engagement", pct(a.engProm), delta(a.engProm, p.engProm)),
+    kpiCard("Likes + comentarios", compacto(a.likes+a.comments), delta(a.likes+a.comments, p.likes+p.comments)),
+  ].join("");
+}
+
+function renderLinea(list) {
+  const svg = document.getElementById("linea");
+  const orden = [...list].sort((x,y)=>ms(x.timestamp)-ms(y.timestamp));
+  if (orden.length < 1) { svg.outerHTML = '<p class="vacio">Sin reels en este periodo.</p>'; return; }
+  let acc = 0; const pts = orden.map(r => (acc += r.views, {t: ms(r.timestamp), v: acc}));
+  const t0 = pts[0].t, t1 = pts[pts.length-1].t || t0+1, vmax = pts[pts.length-1].v || 1;
+  const X = t => 10 + (t1===t0 ? 0 : (t-t0)/(t1-t0))*620;
+  const Y = v => 200 - (v/vmax)*180;
+  const path = pts.map((p,i)=> (i?"L":"M")+X(p.t).toFixed(1)+" "+Y(p.v).toFixed(1)).join(" ");
+  const area = path + ` L${X(pts[pts.length-1].t).toFixed(1)} 200 L${X(t0).toFixed(1)} 200 Z`;
+  svg.setAttribute("viewBox","0 0 640 220");
+  svg.innerHTML = `
+    <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#3b82f6" stop-opacity=".35"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${path}" fill="none" stroke="#3b82f6" stroke-width="2.2"/>
+    <text class="axis" x="10" y="216">${dia(orden[0].timestamp)}</text>
+    <text class="axis" x="630" y="216" text-anchor="end">${dia(orden[orden.length-1].timestamp)}</text>
+    <text class="axis" x="630" y="14" text-anchor="end">${compacto(vmax)} vistas</text>`;
+  document.getElementById("rangoFechas").textContent = `${dia(orden[0].timestamp)} – ${dia(orden[orden.length-1].timestamp)}`;
+}
+
+function renderDestacados(list) {
+  const top = [...list].sort((a,b)=>b.views-a.views).slice(0,5);
+  document.getElementById("destacados").innerHTML = top.length ? top.map(r =>
+    `<div class="row"><span class="t">${(r.caption||"(sin texto)").split("\n")[0].slice(0,70)}</span>
+     <span class="muted">${compacto(r.views)} · ${pct(r.engagement)}</span></div>`).join("")
+    : '<p class="vacio">Sin reels todavía.</p>';
+}
+
+function renderHeat(list) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const inicio = new Date(hoy); inicio.setDate(hoy.getDate() - (14*7 - 1));
+  const conteo = {};
+  list.forEach(r => { if (!r.timestamp) return; const d = new Date(r.timestamp); d.setHours(0,0,0,0); conteo[d.getTime()] = (conteo[d.getTime()]||0)+1; });
+  let html = "", total = 0;
+  for (let i=0;i<14*7;i++) {
+    const d = new Date(inicio); d.setDate(inicio.getDate()+i);
+    const c = conteo[d.getTime()] || 0; total += c;
+    const lvl = c===0?"":c===1?"lvl1":c===2?"lvl2":c===3?"lvl3":"lvl4";
+    html += `<div class="${lvl}" title="${dia(d)}: ${c} publicación(es)"></div>`;
+  }
+  document.getElementById("heat").innerHTML = html;
+  document.getElementById("conteoPub").textContent = `${total} en el periodo`;
+}
+
+let metrica = "views";
+function renderMejores(list) {
+  const top = [...list].sort((a,b)=>b[metrica]-a[metrica]).slice(0,6);
+  const max = Math.max(...top.map(r=>r[metrica]), 0.0001);
+  const fmtM = metrica==="engagement" ? pct : compacto;
+  document.getElementById("mejores").innerHTML = top.length ? top.map(r =>
+    `<div style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <div class="row" style="border:0;padding:0"><span class="t">${(r.caption||"(sin texto)").split("\n")[0].slice(0,60)}</span>
+      <span>${fmtM(r[metrica])}</span></div>
+      <div class="bar"><div style="width:${(r[metrica]/max*100).toFixed(0)}%"></div></div></div>`).join("")
+    : '<p class="vacio">Sin datos.</p>';
+}
+
+function renderDesglose(list) {
+  const q = document.getElementById("buscar").value.trim().toLowerCase();
+  const filas = list.filter(r => !q || [r.tema,r.gancho,r.formato,r.caption].join(" ").toLowerCase().includes(q));
+  document.getElementById("filas").innerHTML = filas.map(r => `<tr>
+    <td>${dia(r.timestamp)}</td><td>${r.tema}</td><td>${r.gancho}</td>
+    <td class="n">${fmt(r.views)}</td><td class="n">${fmt(r.likes)}</td><td class="n">${fmt(r.comments)}</td>
+    <td class="n">${pct(r.engagement)}</td><td><a href="${r.url}" target="_blank" rel="noopener">Ver</a></td></tr>`).join("")
+    || '<tr><td colspan="8" class="vacio">Nada coincide.</td></tr>';
+}
+
+function barrasPor(clave, list, contenedor) {
+  const g = {};
+  list.forEach(r => { const k=r[clave]; g[k]=g[k]||{n:0,v:0,e:0}; g[k].n++; g[k].v+=r.views; g[k].e+=r.engagement; });
+  const filas = Object.entries(g).map(([k,x])=>({k,n:x.n,v:x.v/x.n,e:x.e/x.n})).sort((a,b)=>b.e-a.e);
+  if (!filas.length) { contenedor.innerHTML='<p class="vacio">Sin datos.</p>'; return; }
+  const max = Math.max(...filas.map(f=>f.e), 0.0001);
+  contenedor.innerHTML = `<table><thead><tr><th>Categoría</th><th class="n">Reels</th><th class="n">Vistas prom.</th><th class="n">Engagement</th><th style="width:30%"></th></tr></thead><tbody>` +
+    filas.map(f=>`<tr><td>${f.k}</td><td class="n">${f.n}</td><td class="n">${fmt(f.v)}</td><td class="n">${pct(f.e)}</td>
+    <td><div class="bar"><div style="width:${(f.e/max*100).toFixed(0)}%"></div></div></td></tr>`).join("") + `</tbody></table>`;
+}
+
+// ---------- estado y eventos ----------
+let vista = {};
+function pintar() {
+  const v = ventana();
+  const cuenta = REELS[0]?.ownerUsername || "";
+  document.getElementById("cuenta").textContent = cuenta ? "@"+cuenta : "Mi cuenta";
+  const ult = base.map(r=>r.snapshot_at).filter(Boolean).sort().pop();
+  document.getElementById("sub").textContent = `${base.length} reels sincronizados · última sincronización ${ult ? dia(ult) : "—"}`;
+  renderKpis(v);
+  renderLinea(v.actual);
+  renderDestacados(v.actual);
+  renderHeat(base);
+  renderMejores(v.actual);
+  renderDesglose(v.actual);
+  barrasPor("tema", v.actual, document.getElementById("porTema"));
+  barrasPor("gancho", v.actual, document.getElementById("porGancho"));
+}
+
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return;
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on", x===b));
+  ["dash","desglose","temas","ganchos"].forEach(t => document.getElementById("tab-"+t).classList.toggle("hidden", t!==b.dataset.tab));
+});
+document.getElementById("metricTabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-m]"); if (!b) return;
+  metrica = b.dataset.m;
+  document.querySelectorAll("#metricTabs button").forEach(x=>x.classList.toggle("on", x===b));
+  renderMejores(ventana().actual);
+});
+document.getElementById("periodo").addEventListener("change", pintar);
+document.getElementById("buscar").addEventListener("input", () => renderDesglose(ventana().actual));
+
+pintar();
+</script>
+</body>
+</html>
